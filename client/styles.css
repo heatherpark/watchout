@@ -7,11 +7,18 @@ body {
   background: #2b3135;
 }
 
+.board {
+  position: relative;
+}
+
 .scoreboard {
-  border: 1px solid #ff00de;
   color: #ff00de;
   padding: 20px;
   display: inline-block;
+}
+
+.enemies {
+  position: absolute;
 }
 
 .hero {
@@ -19,4 +26,6 @@ body {
   height: 10px;
   border: 1px solid #a80000;
   background-color: #00cece;
+  border-radius: 5px;
+  position: absolute;
 }

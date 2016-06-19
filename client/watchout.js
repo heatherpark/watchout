@@ -1,129 +1,118 @@
-// start slingin' some d3 here.
-
-
-
-//function to generate random x and y coordinate
-
-var randomSpot = function() {
-  var x = randomNum(10, window.innerWidth - 60);
-  var y = randomNum(110, window.innerHeight - 160);
-
-  return [x, y];
+var settings = {
+  w: window.innerWidth - 60,
+  h: window.innerHeight - 160,
+  r: 8,
+  n: 15
 };
 
-var enemies = [];
+var score = 0;
+var highScore = 0;
+var collisionCount = 0;
 
-for (var i = 0; i < 15; i++) {
-  enemies.push(randomSpot());
-}
+var addPX = function(num) {
+  return num + 'px';
+};
 
-var board = d3.select('.board').append('svg').attr('width', window.innerWidth - 50).attr('height', window.innerHeight - 130);
-var enemySVG = board.selectAll('.enemies')
-    .data(enemies)
-    .enter()
-    .append('circle')
-    .classed('enemies', true)
-    .attr('r', 8)
-    .attr('cx', 10)
-    .attr('cy', 10)
-    .attr('fill', '#600000')
-    .attr('stroke', '#00CECE')
-    .attr('stroke-width', 1);
+var randomNum = function(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
 
+var randomSpotGenerator = function() {
+  var x = randomNum(10, settings.w);
+  var y = randomNum(10, settings.h);
 
-function moveEnemy() {
-  for (var i = 0; i < enemies.length; i++) {
-    enemies[i] = randomSpot();
-  }
+  return {x: x, y: y};
+};
 
-  enemySVG.data(enemies).transition().delay(1000).duration(1000).attr('cx', function(d) {
-    return d[0];
-  }).attr('cy', function(d) {
-    return d[1];
+var board = d3.select('.board')
+  .append('svg')
+  .attr('width', settings.w)
+  .attr('height', settings.h);
+
+var enemies = board
+  .selectAll('.enemies')
+  .data(d3.range(settings.n))
+  .enter()
+  .append('circle')
+  .classed('enemies', true)
+  .attr({
+    r: settings.r,
+    cx: 10,
+    cy: 10,
+    fill: '#600000',
+    stroke: '#00CECE',
+    'stroke-width': 1
   });
 
-  setTimeout(function() {
-    moveEnemy();
-  }, 1000);
+var hero = d3.select('.hero')
+  .style({
+    left: addPX(settings.w / 2),
+    top: addPX(settings.h / 2)
+  });
+
+board.on('mousemove', function() {
+  var mouse = d3.mouse(this);
+  hero.style({
+    left: addPX(mouse[0]),
+    top: addPX(mouse[1])
+  });
+});
+
+var moveEnemies = function(el) {
+  var spot = randomSpotGenerator();
+
+  el.transition()
+    .delay(1000)
+    .duration(1000)
+    .attr({
+      cx: spot.x,
+      cy: spot.y
+    }).each('end', function() {
+      moveEnemies(d3.select(this));
+    });
 }
 
-moveEnemy();
+moveEnemies(enemies);
 
-var hero = [window.innerWidth / 2, window.innerHeight / 2];
+var scoreCounter = function() {
+  score++;
+  highScore = Math.max(score, highScore);
+  d3.select('.highscore span')
+    .text(highScore);
+  d3.select('.current span')
+    .text(score);
+  d3.select('.collisions span')
+    .text(collisionCount);
+};
 
-var heroSVG = board.selectAll('.hero')
-    .data([hero])
-    .enter()
-    .append('circle')
-    .attr('r', 8)
-    .attr('cx', function(d) {  return d[0];  })
-    .attr('cy', function(d) {  return d[1];  })
-    .attr('fill', '#a80000');
+setInterval(scoreCounter, 500);
 
-setInterval(function() {
-console.log(enemySVG);
-  var n = enemySVG[0];
-    for (var i = 0; i < n.length; i++) {
-      console.log(n[i]);
-      var x = d3.select(n[i]).attr('cx');
-      var y = d3.select(n[i]).attr('cy');
-      var hx = heroSVG.attr('cx');
-      var hy = heroSVG.attr('cy');
+var prevCollision = false;
+var count = 0;
 
-      if ((hx > x - 8 && hx < x + 8) && (hy > y - 8 && hy < y + 8)) {
-        if (currentScore > highScore) {
-          highScore = currentScore;
-          d3.select('.highscore>span').text(highScore);
-        }
+var collisions = function() {
+  var collision = false;
 
-        currentScore = 0;
-        collisions++;
-        d3.select('.current>span').text(currentScore);
-        d3.select('.collisions>span').text(collisions);
-      }
+  enemies.each(function() {
+    var x = d3.select(this).attr('cx') - +hero.style('left').replace('px', '');
+    var y = d3.select(this).attr('cy') - +hero.style('top').replace('px', '');
 
+    if (Math.sqrt(x * x + y * y) < settings.r * 2) {
+      collision = true;
     }
-}, 100);
+  });
 
+  if (collision) {
+    score = 0;
+    board.style('background', '#2b3135 url("imgs/boom.jpg") no-repeat center center fixed');
+    if (prevCollision !== collision) {
+      collisionCount++;
+    } else {
+      board.style('background', '#2b3135');
+    }
+  }
 
+  prevCollision = collision;
+};
 
-
-
-//declare array of enemies - 15 enemies - tuples of [x, y]
-//loop through enemies and call function on them
-
-//insert hero element (ds.slelectALL('.hero')?)
-//give static position
-
-//apply hero dragability - using D3?
-
-//put all elements on page with SVGs?
-
-//check for collisions
-
-//recursive movement and collision checking
-
-
-
-
-// variables for highScore, currentScore, nCollisions
-var highScore = 0;
-var currentScore = 0;
-var collisions = 0;
-
-// increment currentScore by 1 every 500ms
-setInterval(function() {
-  currentScore++;
-  d3.select('.current>span').text(currentScore);
-}, 500);
-
-// when collision is found
-  // check if currentScore is higher than highScore
-    // if so
-      // set highScore to currentScore
-  // increment nCollisions
-
-function randomNum(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-// d3.random.normal(3, 1)();
+d3.timer(collisions);
